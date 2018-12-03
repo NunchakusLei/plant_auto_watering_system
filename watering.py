@@ -31,12 +31,13 @@ class SerialController:
         last_send_time = time.time()
         while self.ser.inWaiting() <= 0:
             # make sure the signal send through 
-            if time.time() - last_send_time > 1:
+            if time.time() - last_send_time > 0.1:
                 self.ser.write(str_content.encode())
                 last_send_time = time.time()
         log_current_time()
-        print(self.ser.readline().strip().decode())
-        return get_current_time_str() + ' ' + self.ser.readline().strip().decode() + '\n'
+        respond = self.ser.readline().strip().decode()
+        print(respond)
+        return get_current_time_str() + ' ' + respond + '\n'
 
     def start(self):
         msg = self.send('1')
@@ -48,7 +49,7 @@ class SerialController:
         msg = self.send('1')
         log_current_time()
         print("Watering stops")
-        return msg + get_current_time_str + ' ' + "Watering stops."
+        return msg + get_current_time_str() + ' ' + "Watering stops."
         
 
 class PlantWateringAgent:
@@ -73,7 +74,7 @@ class PlantWateringAgent:
         self.log(get_current_time_str() + ' ' + "Watering agent initialized.")
         while True:
             self._current_time = datetime.datetime.fromtimestamp(time.time())
-            if (self._current_time - self._last_watering_time).days > 1:
+            if (self._current_time - self._last_watering_time).seconds > 43200:
                 self.watering_controller.open()
                 msg = self.watering_controller.start()
                 self.log(msg)
@@ -83,9 +84,10 @@ class PlantWateringAgent:
                 self.watering_controller.close()
                 self._last_watering_time = datetime.datetime.fromtimestamp(time.time())
             else:
-                log_current_time()
-                print("Waiting ...")
-            time.sleep(15)
+                # log_current_time()
+                # print("Waiting ...")
+                self.log(get_current_time_str()+' '+'Agent is still aline.')
+            time.sleep(3600)
     
 if __name__ == '__main__':
     agent = PlantWateringAgent()

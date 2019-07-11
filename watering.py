@@ -39,6 +39,11 @@ class SerialController:
         print(respond)
         return get_current_time_str() + ' ' + respond + '\n'
 
+    def get_moz(self):
+        msg = self.send('4')
+        msg = msg.split(':')[-1].strip()
+        return int(msg)
+
     def start(self):
         msg = self.send('1')
         log_current_time()
@@ -73,21 +78,29 @@ class PlantWateringAgent:
         print("Watering agent initialized.")
         self.log(get_current_time_str() + ' ' + "Watering agent initialized.")
         while True:
+            self.watering_controller.open()
+            self.log("Moisture: {}:".format(self.watering_controller.get_moz()))
+            self.watering_controller.close()
             self._current_time = datetime.datetime.fromtimestamp(time.time())
             if (self._current_time - self._last_watering_time).seconds > 43200:
                 self.watering_controller.open()
-                msg = self.watering_controller.start()
-                self.log(msg)
-                time.sleep(14)
-                msg = self.watering_controller.stop()
-                self.log(msg)
+                if self.watering_controller.get_moz() > 400:
+                    msg = self.watering_controller.start()
+                    self.log(msg)
+                    time.sleep(14)
+                    msg = self.watering_controller.stop()
+                    self.log(msg)
+                    self._last_watering_time = datetime.datetime.fromtimestamp(time.time())
+                else:
+                    self.log("Too moisture to watering. Not watering.")
                 self.watering_controller.close()
-                self._last_watering_time = datetime.datetime.fromtimestamp(time.time())
             else:
-                # log_current_time()
-                # print("Waiting ...")
+                log_current_time()
+                print("Waiting ... {:} to next watering.".format(
+                    datetime.timedelta(seconds=43200) - (self._current_time - self._last_watering_time)
+                ))
                 self.log(get_current_time_str()+' '+'Agent is still aline.')
-            time.sleep(3600)
+            time.sleep(15 * 60 - 1)
     
 if __name__ == '__main__':
     agent = PlantWateringAgent()
